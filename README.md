@@ -39,11 +39,11 @@ For example:
 
 ```text
 faces/
-├── reza.jpg
-├── amir.jpg
-├── mahmood.jpg
-├── mojtaba.jpg
-└── morteza.jpg
+├── Barack Obama.jpg
+├── Donald Trump.jpg
+├── Elon Musk.jpg
+├── Mark Zuckerberg.jpg
+
 ```
 
 Each image represents a person whose face we want the system to recognize.
@@ -94,7 +94,7 @@ YOLO is responsible for **detection**, not recognition.
 
 ```text
 YOLO → "There is a face here."
-ArcFace → "This face is probably Reza."
+ArcFace → "This face is probably Barack Obama."
 ```
 
 ---
@@ -241,18 +241,18 @@ For example:
 known_embeddings
     ↓
 [
-    embedding_of_reza,
-    embedding_of_amir,
-    embedding_of_mahmood,
+    embedding_of_Barack Obama,
+    embedding_of_Donald Trump,
+    embedding_of_Elon Musk,
     ...
 ]
 
 known_names
     ↓
 [
-    "reza",
-    "amir",
-    "mahmood",
+    "Barack Obama",
+    "Donald Trump",
+    "Elon Musk",
     ...
 ]
 ```
@@ -368,10 +368,10 @@ For example:
 ```text
 Webcam face
     ↓
-Compare with Reza      → 0.82
-Compare with Amir      → 0.31
-Compare with Mahmood   → 0.27
-Compare with Mojtaba   → 0.42
+Compare with Barack Obama      → 0.82
+Compare with Donald Trump      → 0.31
+Compare with Elon Mus          → 0.27
+Compare with Mark Zuckerberg   → 0.42
 ```
 
 The highest similarity is selected.
@@ -379,7 +379,7 @@ The highest similarity is selected.
 In this example:
 
 ```text
-Reza → 0.82
+Barack Obama → 0.82
 ```
 
 is the best match.
@@ -453,19 +453,19 @@ For example:
 
 ```text
 Best match:
-Reza → 0.82
+Barack Obama → 0.82
 
 0.82 ≥ 0.45
 
 Result:
-Reza
+Barack Obama
 ```
 
 While:
 
 ```text
 Best match:
-Amir → 0.32
+Donald Trump → 0.32
 
 0.32 < 0.45
 
