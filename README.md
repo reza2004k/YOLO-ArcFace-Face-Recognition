@@ -390,110 +390,30 @@ is the best match.
 
 The dot product of two vectors is related to the angle between them:
 
-$$
-\mathbf{a} \cdot \mathbf{b}
-=
-|\mathbf{a}|\,|\mathbf{b}|\,\cos(\theta)
-$$
+Example
 
-Therefore, cosine similarity can be calculated as:
+Consider two vectors:
 
-$$
-\cos(\theta)
-=
-\frac{\mathbf{a} \cdot \mathbf{b}}
-{|\mathbf{a}|\,|\mathbf{b}|}
-$$
-
-Where:
-
-- $\mathbf{a}$ = first face embedding
-- $\mathbf{b}$ = second face embedding
-- $\theta$ = angle between the two vectors
-- $|\mathbf{a}|$ = magnitude of vector $\mathbf{a}$
-- $|\mathbf{b}|$ = magnitude of vector $\mathbf{b}$
-
-In our project, all face embeddings are normalized before comparison:
-
-```math
-|\mathbf{a}| = |\mathbf{b}| = 1
-So we can simply use:
-
-```python
-np.dot(a, b)
-```
-
----
-
-## Example
-
-Consider:
-
-$$
-\mathbf{a}=[1,1]
-$$
+$$ \mathbf{a} = [1,1] $$
 
 and
 
-$$
-\mathbf{b}=[2,2]
-$$
+$$ \mathbf{b} = [2,2] $$
+Step 1: Calculate the dot product
+$$ \mathbf{a} \cdot \mathbf{b} = (1 \times 2) + (1 \times 2) = 4 $$
+Step 2: Calculate the magnitudes
+$$ |\mathbf{a}| = \sqrt{1^2 + 1^2} = \sqrt{2} $$ $$ |\mathbf{b}| = \sqrt{2^2 + 2^2} = \sqrt{8} = 2\sqrt{2} $$
+Step 3: Calculate cosine similarity
+$$ \cos(\theta) = \frac{\mathbf{a} \cdot \mathbf{b}} {|\mathbf{a}|\,|\mathbf{b}|} $$
 
-First calculate the dot product:
+Substituting the values:
 
-$$
-\mathbf{a}\cdot\mathbf{b}
-=
-(1\times2)+(1\times2)
-=
-4
-$$
-
-The magnitudes are:
-
-$$
-\|\mathbf{a}\|
-=
-\sqrt{1^2+1^2}
-=
-\sqrt{2}
-$$
-
-$$
-\|\mathbf{b}\|
-=
-\sqrt{2^2+2^2}
-=
-\sqrt{8}
-=
-2\sqrt{2}
-$$
+$$ \cos(\theta) = \frac{4} {\sqrt{2} \times 2\sqrt{2}} $$ $$ \cos(\theta) = \frac{4}{4} = 1 $$
 
 Therefore:
 
-$$
-\cos(\theta)
-=
-\frac{4}{\sqrt{2}\times2\sqrt{2}}
-=
-\frac{4}{4}
-=
-1
-$$
+$$ \cos(\theta) = 1 $$
 
-So:
-
-$$
-\boxed{\cos(\theta)=1}
-$$
-
-This means:
-
-```text
-θ = 0°
-```
-
-The two vectors point in exactly the **same direction**.
 
 In face recognition, a cosine similarity close to `1` means that the two normalized embeddings are very similar in the learned feature space.
 
@@ -722,5 +642,3 @@ Threshold
 face_database.pkl
 → Stores known embeddings and their names
 ```
-
-This architecture allows the system to detect multiple faces in real time, generate a numerical representation for each face, and identify the person by comparing that representation against the local face database.
