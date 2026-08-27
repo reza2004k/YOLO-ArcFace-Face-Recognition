@@ -386,45 +386,37 @@ is the best match.
 
 ---
 
-# 11. Dot Product and Cosine Similarity
+## 11. Dot Product and Cosine Similarity
 
 The dot product of two vectors is related to the angle between them:
 
 $$
-\mathbf{a}\cdot\mathbf{b}
+\mathbf{a} \cdot \mathbf{b}
 =
-\|\mathbf{a}\|\|\mathbf{b}\|\cos(\theta)
+|\mathbf{a}|\,|\mathbf{b}|\,\cos(\theta)
 $$
 
-Therefore:
+Therefore, cosine similarity can be calculated as:
 
 $$
 \cos(\theta)
 =
-\frac{\mathbf{a}\cdot\mathbf{b}}
-{\|\mathbf{a}\|\|\mathbf{b}\|}
+\frac{\mathbf{a} \cdot \mathbf{b}}
+{|\mathbf{a}|\,|\mathbf{b}|}
 $$
 
 Where:
 
-* \(\mathbf{a}\) = first face embedding
-* \(\mathbf{b}\) = second face embedding
-* \(\theta\) = angle between the vectors
-* \(\|\mathbf{a}\|\) = magnitude of vector \(a\)
-* \(\|\mathbf{b}\|\) = magnitude of vector \(b\)
+- $\mathbf{a}$ = first face embedding
+- $\mathbf{b}$ = second face embedding
+- $\theta$ = angle between the two vectors
+- $|\mathbf{a}|$ = magnitude of vector $\mathbf{a}$
+- $|\mathbf{b}|$ = magnitude of vector $\mathbf{b}$
 
-In our project, the embeddings are normalized:
+In our project, all face embeddings are normalized before comparison:
 
-$$
-\|\mathbf{a}\| = \|\mathbf{b}\| = 1
-$$
-
-Therefore:
-
-$$
-\mathbf{a}\cdot\mathbf{b} = \cos(\theta)
-$$
-
+```math
+|\mathbf{a}| = |\mathbf{b}| = 1
 So we can simply use:
 
 ```python
