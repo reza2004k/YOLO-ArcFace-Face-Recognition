@@ -1,5 +1,15 @@
 # YOLO + ArcFace Face Recognition
 
+## Quick Run
+pip install -r requirements.txt
+python build_database.py
+python webcam.py
+
+## Run order:
+
+build_database.py → creates face_database.pkl
+webcam.py → starts real-time face recognition
+
 ## Project Overview
 
 This project is a **real-time face recognition system** built with two main parts:
