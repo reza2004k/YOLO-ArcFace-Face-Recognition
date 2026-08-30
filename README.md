@@ -112,38 +112,27 @@ These points can include:
 
 For more detailed landmark models, many additional points can be detected around the eyes, nose, mouth, and face contour/jaw.
 
-Instead of manually guessing these coordinates from the bounding box, it is better to use a **Face Landmark Model**.
+Instead of manually guessing these coordinates from the bounding box, the project uses a **Face Landmark Model**.
 
 A landmark model is a neural network trained to look at a face and predict the coordinates of facial keypoints.
 
-For example:
-
-```text
-Input: Face image
-
-        ↓
-
-Face Landmark Model
-
-        ↓
-
-(eye_x, eye_y)
-(nose_x, nose_y)
-(mouth_x, mouth_y)
-...
-```
-
-These coordinates are stored as the `landmarks` array.
-
-The project uses the facial landmark model from the **InsightFace Buffalo_L** model package.
-
-The relevant landmark model is:
+The relevant landmark model from the InsightFace Buffalo_L package is:
 
 ```text
 2d106det.onnx
 ```
 
-This model predicts detailed 2D facial landmarks instead of relying on estimated coordinates from the YOLO bounding box.
+This model predicts detailed 2D facial landmarks instead of relying on fixed estimated positions inside the YOLO bounding box.
+
+The pipeline is:
+
+```text
+Input Face
+     ↓
+Face Landmark Model
+     ↓
+Facial Keypoints
+```
 
 ---
 
@@ -159,7 +148,7 @@ For example:
 
 ArcFace works better when faces are presented in a consistent format.
 
-Therefore, the landmarks are used to **align the face**.
+Therefore, the facial landmarks are used to **align the face**.
 
 The alignment process geometrically transforms the face so that important points such as the eyes and nose are placed in approximately standard positions.
 
@@ -226,7 +215,7 @@ Face Image
      ↓
 ArcFace
      ↓
-512 numbers
+512-D Face Embedding
 ```
 
 ---
@@ -247,22 +236,25 @@ CUDAExecutionProvider
 NVIDIA GeForce GTX 1650
 ```
 
-The project explicitly loads ArcFace with:
+The project loads ArcFace using:
 
 ```python
-providers=[
-    "CUDAExecutionProvider",
-    "CPUExecutionProvider"
-]
+recognizer = get_model(
+    ARCFACE_MODEL,
+    providers=[
+        "CUDAExecutionProvider",
+        "CPUExecutionProvider"
+    ]
+)
 ```
 
-and prepares the model with:
+The model is then prepared with:
 
 ```python
 recognizer.prepare(ctx_id=0)
 ```
 
-The actual ONNX Runtime session is verified using:
+The actual ONNX Runtime session can be verified using:
 
 ```python
 recognizer.session.get_providers()
@@ -274,15 +266,21 @@ The expected result is:
 ['CUDAExecutionProvider', 'CPUExecutionProvider']
 ```
 
-This means that **CUDAExecutionProvider is the active execution provider**, so the ArcFace inference is performed using the NVIDIA GPU.
+The first provider is:
 
-The current GPU is:
+```text
+CUDAExecutionProvider
+```
+
+which means that ArcFace inference is running through the CUDA execution provider on the NVIDIA GPU.
+
+The current GPU used by the project is:
 
 ```text
 NVIDIA GeForce GTX 1650
 ```
 
-Therefore, the recognition part of the pipeline is:
+Therefore, the recognition pipeline is:
 
 ```text
 Face
@@ -300,7 +298,7 @@ NVIDIA GTX 1650
 512-D Embedding
 ```
 
-This allows ArcFace to participate in the real-time GPU-accelerated face recognition pipeline instead of running the recognition inference entirely on the CPU.
+This allows ArcFace to participate in the real-time GPU-accelerated face recognition pipeline.
 
 ---
 
@@ -391,7 +389,7 @@ YOLO
 CPU
 ```
 
-we use:
+the project uses:
 
 ```text
 YOLO
@@ -476,7 +474,274 @@ is the best match.
 
 ---
 
-## 11. Dot Product and Cosine Similarity The dot product of two vectors is related to the angle between them: Example Consider two vectors: $$ \mathbf{a} = [1,1] $$ and $$ \mathbf{b} = [2,2] $$ Step 1: Calculate the dot product $$ \mathbf{a} \cdot \mathbf{b} = (1 \times 2) + (1 \times 2) = 4 $$ Step 2: Calculate the magnitudes $$ |\mathbf{a}| = \sqrt{1^2 + 1^2} = \sqrt{2} $$ $$ |\mathbf{b}| = \sqrt{2^2 + 2^2} = \sqrt{8} = 2\sqrt{2} $$ Step 3: Calculate cosine similarity $$ \cos(\theta) = \frac{\mathbf{a} \cdot \mathbf{b}} {|\mathbf{a}|\,|\mathbf{b}|} $$ Substituting the values: $$ \cos(\theta) = \frac{4} {\sqrt{2} \times 2\sqrt{2}} $$ $$ \cos(\theta) = \frac{4}{4} = 1 $$ Therefore: $$ \cos(\theta) = 1 $$ In face recognition, a cosine similarity close to 1 means that the two normalized embeddings are very similar in the learned feature space. ---
+# 12. Dot Product and Cosine Similarity
+
+The project uses **cosine similarity** to compare face embeddings.
+
+Cosine similarity measures the angle between two vectors.
+
+The general formula is:
+
+$$
+\text{cosine similarity}
+=
+\frac{\mathbf{a}\cdot\mathbf{b}}
+{\|\mathbf{a}\|\|\mathbf{b}\|}
+$$
+
+Where:
+
+```text
+a · b   = Dot Product of vectors a and b
+||a||   = Magnitude (L2 norm) of vector a
+||b||   = Magnitude (L2 norm) of vector b
+```
+
+---
+
+## Example
+
+Consider two vectors:
+
+$$
+\mathbf{a} = [1,1]
+$$
+
+$$
+\mathbf{b} = [2,2]
+$$
+
+### Step 1: Calculate the Dot Product
+
+The dot product is:
+
+$$
+\mathbf{a}\cdot\mathbf{b}
+=
+(a_1b_1)+(a_2b_2)
+$$
+
+Substituting the values:
+
+$$
+\mathbf{a}\cdot\mathbf{b}
+=
+(1\times2)+(1\times2)
+$$
+
+Therefore:
+
+$$
+\mathbf{a}\cdot\mathbf{b}=4
+$$
+
+---
+
+## Step 2: Calculate the Magnitude of Vector a
+
+The magnitude is:
+
+$$
+\|\mathbf{a}\|
+=
+\sqrt{a_1^2+a_2^2}
+$$
+
+Substituting:
+
+$$
+\|\mathbf{a}\|
+=
+\sqrt{1^2+1^2}
+$$
+
+Therefore:
+
+$$
+\|\mathbf{a}\|=\sqrt{2}
+$$
+
+---
+
+## Step 3: Calculate the Magnitude of Vector b
+
+Similarly:
+
+$$
+\|\mathbf{b}\|
+=
+\sqrt{b_1^2+b_2^2}
+$$
+
+Substituting:
+
+$$
+\|\mathbf{b}\|
+=
+\sqrt{2^2+2^2}
+$$
+
+Therefore:
+
+$$
+\|\mathbf{b}\|
+=
+\sqrt{4+4}
+=
+\sqrt{8}
+=
+2\sqrt{2}
+$$
+
+---
+
+## Step 4: Calculate Cosine Similarity
+
+The formula is:
+
+$$
+\cos(\theta)
+=
+\frac{\mathbf{a}\cdot\mathbf{b}}
+{\|\mathbf{a}\|\|\mathbf{b}\|}
+$$
+
+Substituting the calculated values:
+
+$$
+\cos(\theta)
+=
+\frac{4}
+{\sqrt{2}\times2\sqrt{2}}
+$$
+
+Since:
+
+$$
+\sqrt{2}\times2\sqrt{2}=4
+$$
+
+we get:
+
+$$
+\cos(\theta)
+=
+\frac{4}{4}
+$$
+
+Therefore:
+
+$$
+\boxed{\cos(\theta)=1}
+$$
+
+This means the two vectors point in exactly the same direction.
+
+---
+
+## Why Can We Use Dot Product Directly?
+
+In this project, face embeddings are **L2-normalized** before comparison.
+
+Normalization is performed using:
+
+$$
+\mathbf{a}_{normalized}
+=
+\frac{\mathbf{a}}{\|\mathbf{a}\|}
+$$
+
+After normalization:
+
+$$
+\|\mathbf{a}_{normalized}\|=1
+$$
+
+The same applies to the second embedding:
+
+$$
+\|\mathbf{b}_{normalized}\|=1
+$$
+
+Therefore, the cosine similarity formula becomes:
+
+$$
+\cos(\theta)
+=
+\frac{\mathbf{a}\cdot\mathbf{b}}
+{1\times1}
+$$
+
+which simplifies to:
+
+$$
+\boxed{\cos(\theta)=\mathbf{a}\cdot\mathbf{b}}
+$$
+
+Therefore, the project can calculate cosine similarity directly using:
+
+```python
+similarity = np.dot(
+    embedding1,
+    embedding2
+)
+```
+
+For comparing one webcam embedding against the complete database:
+
+```python
+similarities = np.dot(
+    known_embeddings,
+    embedding
+)
+```
+
+The process is therefore:
+
+```text
+Normalized Embeddings
+        ↓
+     Dot Product
+        ↓
+Cosine Similarity
+        ↓
+Similarity Score
+```
+
+---
+
+## Interpretation of Similarity
+
+Cosine similarity is bounded by:
+
+$$
+-1 \leq \cos(\theta) \leq 1
+$$
+
+In general:
+
+```text
+Similarity ≈ 1
+        ↓
+Very similar vector directions
+```
+
+```text
+Similarity ≈ 0
+        ↓
+Little directional similarity
+```
+
+```text
+Similarity ≈ -1
+        ↓
+Opposite vector directions
+```
+
+For face recognition, a higher similarity generally indicates that two face embeddings are closer in the learned feature space.
+
+---
+
 # 13. Recognition Threshold
 
 The project uses a recognition threshold:
@@ -571,7 +836,7 @@ w600k_r50
 
 The landmark model is used to obtain actual facial keypoints rather than estimating eye, nose, and mouth positions from simple fixed percentages of the YOLO bounding box.
 
-This is more robust because the landmark model analyzes the actual face.
+This makes the alignment process more robust because the landmark model analyzes the actual face.
 
 ---
 
@@ -579,7 +844,7 @@ This is more robust because the landmark model analyzes the actual face.
 
 For real-time performance, we want the computationally expensive neural networks to run on the GPU.
 
-The desired architecture is:
+The architecture is:
 
 ```text
                  NVIDIA GTX 1650
@@ -710,7 +975,7 @@ The complete project can be summarized as:
 
 # Summary
 
-The project separates **detection** from **recognition**:
+The project separates **detection**, **landmark detection**, and **recognition**:
 
 ```text
 YOLO
@@ -738,7 +1003,7 @@ face_database.pkl
 → Stores known embeddings and their names
 ```
 
-The complete system therefore combines three main neural-network stages:
+The complete system combines three main neural-network stages:
 
 ```text
 YOLO
