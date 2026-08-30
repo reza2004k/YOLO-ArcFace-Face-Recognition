@@ -43,6 +43,7 @@ faces/
 ├── Donald Trump.jpg
 ├── Elon Musk.jpg
 ├── Mark Zuckerberg.jpg
+
 ```
 
 Each image represents a person whose face we want the system to recognize.
@@ -67,7 +68,7 @@ Save to Database
 
 ---
 
-# 2. Face Detection with YOLO
+## 2. Face Detection with YOLO
 
 The project uses **YOLO (You Only Look Once)** for face detection.
 
@@ -112,27 +113,28 @@ These points can include:
 
 For more detailed landmark models, many additional points can be detected around the eyes, nose, mouth, and face contour/jaw.
 
-Instead of manually guessing these coordinates from the bounding box, the project uses a **Face Landmark Model**.
+Instead of manually guessing these coordinates from the bounding box, it is better to use a **Face Landmark Model**.
 
 A landmark model is a neural network trained to look at a face and predict the coordinates of facial keypoints.
 
-The relevant landmark model from the InsightFace Buffalo_L package is:
+For example:
 
 ```text
-2d106det.onnx
-```
+Input: Face image
 
-This model predicts detailed 2D facial landmarks instead of relying on fixed estimated positions inside the YOLO bounding box.
+        ↓
 
-The pipeline is:
-
-```text
-Input Face
-     ↓
 Face Landmark Model
-     ↓
-Facial Keypoints
+
+        ↓
+
+(eye_x, eye_y)
+(nose_x, nose_y)
+(mouth_x, mouth_y)
+...
 ```
+
+These coordinates are stored as the `landmarks` array.
 
 ---
 
@@ -148,7 +150,7 @@ For example:
 
 ArcFace works better when faces are presented in a consistent format.
 
-Therefore, the facial landmarks are used to **align the face**.
+Therefore, the landmarks are used to **align the face**.
 
 The alignment process geometrically transforms the face so that important points such as the eyes and nose are placed in approximately standard positions.
 
@@ -165,7 +167,7 @@ Original Image
       ↓
 Detected Face
       ↓
-Facial Landmarks
+Landmarks
       ↓
 Alignment
       ↓
@@ -174,29 +176,42 @@ Alignment
 
 ---
 
-# 5. ArcFace
+5. ArcFace
 
-After alignment, the face is passed to **ArcFace**.
+After face alignment, the aligned face is passed to ArcFace.
 
-ArcFace's job is to convert the face image into a numerical representation called a **face embedding**.
+ArcFace's job is to convert the face image into a numerical representation called a face embedding.
 
 The model used in this project is:
 
-```text
 w600k_r50.onnx
-```
 
-This is an **ONNX version of an ArcFace recognition model based on a ResNet-50 backbone**.
+This is an ONNX version of an ArcFace recognition model based on a ResNet-50 backbone.
 
-The neural network processes the face through many learned layers and extracts high-level facial representations.
+The model is executed using ONNX Runtime with CUDAExecutionProvider, meaning that ArcFace is currently running on the NVIDIA GTX 1650 GPU, rather than the CPU.
+
+The current execution architecture is:
+
+Aligned Face
+     ↓
+ArcFace
+     ↓
+ONNX Runtime
+     ↓
+CUDAExecutionProvider
+     ↓
+NVIDIA GTX 1650
+     ↓
+512-D Embedding
+
+The neural network processes the aligned face through its learned layers and extracts high-level facial representations.
 
 It does not simply store raw pixels.
 
-The network learns patterns and features useful for distinguishing identities, such as facial structure and combinations of visual patterns around areas such as the eyes, nose, mouth, and overall face shape.
+The network learns patterns and features useful for distinguishing identities, such as facial structure and combinations of visual patterns around the eyes, nose, mouth, and overall face shape.
 
-The final result is a **512-dimensional vector**:
+The final result is a 512-dimensional vector:
 
-```text
 [
   0.021,
  -0.134,
@@ -204,105 +219,24 @@ The final result is a **512-dimensional vector**:
   ...
   0.087
 ]
-```
 
-This vector is called the **face embedding**.
+This vector is called the face embedding.
 
 So:
 
-```text
-Face Image
-     ↓
-ArcFace
-     ↓
-512-D Face Embedding
-```
+112 × 112 Face
+      ↓
+   ArcFace
+      ↓
+ONNX Runtime
+      ↓
+CUDA / NVIDIA GPU
+      ↓
+512 numbers
 
 ---
 
-# 6. ArcFace GPU Acceleration
-
-In the current implementation, **ArcFace runs on the NVIDIA GPU using ONNX Runtime and CUDA**.
-
-The execution architecture is:
-
-```text
-ArcFace
-   ↓
-ONNX Runtime
-   ↓
-CUDAExecutionProvider
-   ↓
-NVIDIA GeForce GTX 1650
-```
-
-The project loads ArcFace using:
-
-```python
-recognizer = get_model(
-    ARCFACE_MODEL,
-    providers=[
-        "CUDAExecutionProvider",
-        "CPUExecutionProvider"
-    ]
-)
-```
-
-The model is then prepared with:
-
-```python
-recognizer.prepare(ctx_id=0)
-```
-
-The actual ONNX Runtime session can be verified using:
-
-```python
-recognizer.session.get_providers()
-```
-
-The expected result is:
-
-```text
-['CUDAExecutionProvider', 'CPUExecutionProvider']
-```
-
-The first provider is:
-
-```text
-CUDAExecutionProvider
-```
-
-which means that ArcFace inference is running through the CUDA execution provider on the NVIDIA GPU.
-
-The current GPU used by the project is:
-
-```text
-NVIDIA GeForce GTX 1650
-```
-
-Therefore, the recognition pipeline is:
-
-```text
-Face
- ↓
-Alignment
- ↓
-ArcFace
- ↓
-ONNX Runtime
- ↓
-CUDAExecutionProvider
- ↓
-NVIDIA GTX 1650
- ↓
-512-D Embedding
-```
-
-This allows ArcFace to participate in the real-time GPU-accelerated face recognition pipeline.
-
----
-
-# 7. Building `face_database.pkl`
+# 6. Building `face_database.pkl`
 
 After generating an embedding for every person, the project stores the embeddings together with their names.
 
@@ -349,7 +283,7 @@ It is simply our local face database containing the embeddings and corresponding
 
 ---
 
-# 8. Webcam Face Recognition
+# 7. Webcam Face Recognition
 
 The second part of the project is the real-time webcam system.
 
@@ -377,50 +311,60 @@ Name / Unknown
 
 ---
 
-# 9. YOLO on the GPU
+8. YOLO and ArcFace on the GPU
 
-YOLO runs using the NVIDIA GPU through CUDA.
+The system uses the NVIDIA GPU for both major neural-network components.
 
-Instead of processing the image only on the CPU:
-
-```text
 YOLO
- ↓
-CPU
-```
 
-the project uses:
+YOLO runs through PyTorch and CUDA:
 
-```text
 YOLO
  ↓
 PyTorch
  ↓
 CUDA
  ↓
-NVIDIA GPU
-```
+NVIDIA GTX 1650
+ArcFace
 
-This significantly improves the speed of real-time face detection.
+ArcFace runs through ONNX Runtime and CUDA:
 
-The current GPU used by the project is:
+ArcFace
+ ↓
+ONNX Runtime
+ ↓
+CUDAExecutionProvider
+ ↓
+NVIDIA GTX 1650
 
-```text
-NVIDIA GeForce GTX 1650
-```
+Therefore, the main computational pipeline is GPU-accelerated:
+
+                    NVIDIA GTX 1650
+                           │
+             ┌─────────────┴─────────────┐
+             ↓                           ↓
+           YOLO                       ArcFace
+        Detection                   Recognition
+             │                           │
+       PyTorch/CUDA              ONNX Runtime/CUDA
+             │                           │
+             └─────────────┬─────────────┘
+                           ↓
+                    Real-Time Result
+
+The landmark model can also use ONNX Runtime's CUDA execution provider when configured accordingly.
 
 ---
 
-# 10. Generating the Webcam Embedding
+# 9. Generating the Webcam Embedding
 
 When YOLO detects a face in the webcam frame, the same processing pipeline used during database creation is applied:
 
 ```text
 Detected Face
      ↓
-Face Landmark Model
-     ↓
-Facial Keypoints
+Landmarks
      ↓
 Alignment
      ↓
@@ -433,7 +377,7 @@ This is important because the database embeddings and webcam embeddings must be 
 
 ---
 
-# 11. Comparing Face Embeddings
+# 10. Comparing Face Embeddings
 
 The webcam embedding is compared with all embeddings stored in:
 
@@ -458,7 +402,7 @@ Webcam face
     ↓
 Compare with Barack Obama      → 0.82
 Compare with Donald Trump      → 0.31
-Compare with Elon Musk         → 0.27
+Compare with Elon Mus          → 0.27
 Compare with Mark Zuckerberg   → 0.42
 ```
 
@@ -474,211 +418,40 @@ is the best match.
 
 ---
 
-# 12. Dot Product and Cosine Similarity
+## 11. Dot Product and Cosine Similarity
 
-The dot product of two vectors is related to the angle between them.
+The dot product of two vectors is related to the angle between them:
+
+Example
 
 Consider two vectors:
 
-$$
-\mathbf{a} = [1,1]
-$$
+$$ \mathbf{a} = [1,1] $$
 
 and
 
-$$
-\mathbf{b} = [2,2]
-$$
-
-## Step 1: Calculate the dot product
-
-$$
-\mathbf{a}\cdot\mathbf{b}
-=
-(a_1b_1)+(a_2b_2)
-$$
+$$ \mathbf{b} = [2,2] $$
+Step 1: Calculate the dot product
+$$ \mathbf{a} \cdot \mathbf{b} = (1 \times 2) + (1 \times 2) = 4 $$
+Step 2: Calculate the magnitudes
+$$ |\mathbf{a}| = \sqrt{1^2 + 1^2} = \sqrt{2} $$ $$ |\mathbf{b}| = \sqrt{2^2 + 2^2} = \sqrt{8} = 2\sqrt{2} $$
+Step 3: Calculate cosine similarity
+$$ \cos(\theta) = \frac{\mathbf{a} \cdot \mathbf{b}} {|\mathbf{a}|\,|\mathbf{b}|} $$
 
 Substituting the values:
 
-$$
-\mathbf{a}\cdot\mathbf{b}
-=
-(1\times2)+(1\times2)
-$$
+$$ \cos(\theta) = \frac{4} {\sqrt{2} \times 2\sqrt{2}} $$ $$ \cos(\theta) = \frac{4}{4} = 1 $$
 
 Therefore:
 
-$$
-\mathbf{a}\cdot\mathbf{b}=4
-$$
+$$ \cos(\theta) = 1 $$
 
-## Step 2: Calculate the magnitudes
 
-The magnitude of vector $\mathbf{a}$ is:
-
-$$
-|\mathbf{a}|
-=
-\sqrt{a_1^2+a_2^2}
-$$
-
-Substituting the values:
-
-$$
-|\mathbf{a}|
-=
-\sqrt{1^2+1^2}
-$$
-
-Therefore:
-
-$$
-|\mathbf{a}|=\sqrt{2}
-$$
-
-The magnitude of vector $\mathbf{b}$ is:
-
-$$
-|\mathbf{b}|
-=
-\sqrt{b_1^2+b_2^2}
-$$
-
-Substituting the values:
-
-$$
-|\mathbf{b}|
-=
-\sqrt{2^2+2^2}
-$$
-
-Therefore:
-
-$$
-|\mathbf{b}|=\sqrt{8}=2\sqrt{2}
-$$
-
-## Step 3: Calculate cosine similarity
-
-Cosine similarity is defined as:
-
-$$
-\cos(\theta)
-=
-\frac{\mathbf{a}\cdot\mathbf{b}}
-{|\mathbf{a}||\mathbf{b}|}
-$$
-
-Substituting the values:
-
-$$
-\cos(\theta)
-=
-\frac{4}
-{\sqrt{2}\times2\sqrt{2}}
-$$
-
-Therefore:
-
-$$
-\cos(\theta)
-=
-\frac{4}{4}
-=
-1
-$$
-
-So:
-
-$$
-\boxed{\cos(\theta)=1}
-$$
-
-This means that the two vectors point in exactly the same direction.
+In face recognition, a cosine similarity close to `1` means that the two normalized embeddings are very similar in the learned feature space.
 
 ---
 
-## Cosine Similarity in Face Recognition
-
-In this project, ArcFace converts each detected face into a 512-dimensional embedding:
-
-$$
-\mathbf{e}
-=
-[e_1,e_2,\ldots,e_{512}]
-$$
-
-Before comparison, the embeddings are normalized:
-
-$$
-\hat{\mathbf{e}}
-=
-\frac{\mathbf{e}}
-{|\mathbf{e}|}
-$$
-
-For two normalized face embeddings $\hat{\mathbf{e}}_1$ and $\hat{\mathbf{e}}_2$, cosine similarity can be calculated directly using the dot product:
-
-$$
-\text{Similarity}
-=
-\hat{\mathbf{e}}_1
-\cdot
-\hat{\mathbf{e}}_2
-$$
-
-because:
-
-$$
-|\hat{\mathbf{e}}_1|=1
-$$
-
-and
-
-$$
-|\hat{\mathbf{e}}_2|=1
-$$
-
-The general cosine similarity formula is:
-
-$$
-\cos(\theta)
-=
-\frac{
-\hat{\mathbf{e}}_1
-\cdot
-\hat{\mathbf{e}}_2
-}{
-|\hat{\mathbf{e}}_1|
-|\hat{\mathbf{e}}_2|
-}
-$$
-
-Since both embeddings are normalized:
-
-$$
-|\hat{\mathbf{e}}_1|=|\hat{\mathbf{e}}_2|=1
-$$
-
-the formula becomes:
-
-$$
-\cos(\theta)
-=
-\hat{\mathbf{e}}_1
-\cdot
-\hat{\mathbf{e}}_2
-$$
-
-In the Python implementation:
-
-```python
-similarity = np.dot(
-    embedding1,
-    embedding2
-)
-
-# 13. Recognition Threshold
+# 12. Recognition Threshold
 
 The project uses a recognition threshold:
 
@@ -736,7 +509,7 @@ The threshold is an application parameter and should ideally be tuned using vali
 
 ---
 
-# 14. Buffalo Model
+# 13. Buffalo Model
 
 The **Buffalo_L** model package from InsightFace contains several different neural networks for different tasks.
 
@@ -745,7 +518,7 @@ The important models used in this project are:
 | Model            | Purpose                                   |
 | ---------------- | ----------------------------------------- |
 | `det_10g.onnx`   | Face detection                            |
-| `2d106det.onnx`  | Detailed 2D facial landmark detection     |
+| `2d106det.onnx`  | 2D facial landmark detection              |
 | `w600k_r50.onnx` | ArcFace face recognition                  |
 | `genderage.onnx` | Gender and age estimation                 |
 | `1k3d68.onnx`    | 3D/68-point facial landmark-related model |
@@ -770,67 +543,41 @@ w600k_r50
 512-D Embedding
 ```
 
-The landmark model is used to obtain actual facial keypoints rather than estimating eye, nose, and mouth positions from simple fixed percentages of the YOLO bounding box.
-
-This makes the alignment process more robust because the landmark model analyzes the actual face.
+Using a real landmark model is preferable to manually estimating landmark positions from the YOLO bounding box because the landmark network **actually analyzes the face and predicts the keypoint coordinates**.
 
 ---
 
-# 15. Why CUDA Is Important
+# 14. Why CUDA Is Important
 
 For real-time performance, we want the computationally expensive neural networks to run on the GPU.
 
-The architecture is:
+The current architecture uses:
 
-```text
-                 NVIDIA GTX 1650
-                        │
-          ┌─────────────┴─────────────┐
-          ↓                           ↓
-        YOLO                       ArcFace
-      Detection                   Recognition
-          │                           │
-       PyTorch                    ONNX Runtime
-          │                           │
-        CUDA                 CUDAExecutionProvider
-          │                           │
-          └─────────────┬─────────────┘
-                        ↓
-                  Real-Time Result
-```
-
-YOLO uses:
-
-```text
-PyTorch
-   ↓
-CUDA
-   ↓
+YOLO
+ ↓
+PyTorch + CUDA
+ ↓
 NVIDIA GTX 1650
-```
 
-ArcFace uses:
+and:
 
-```text
+ArcFace
+ ↓
 ONNX Runtime
-   ↓
+ ↓
 CUDAExecutionProvider
-   ↓
+ ↓
 NVIDIA GTX 1650
-```
 
-The landmark model can also be executed through ONNX Runtime with CUDA when configured with the CUDA execution provider.
+Therefore, the desired final pipeline is:
 
-Therefore, the final GPU-accelerated pipeline is:
-
-```text
 Webcam
   ↓
 YOLO + CUDA
   ↓
 Face Bounding Box
   ↓
-Face Landmark Model + CUDA
+Face Landmark Model
   ↓
 Facial Keypoints
   ↓
@@ -843,15 +590,20 @@ ArcFace + CUDA
 Cosine Similarity
   ↓
 Name / Unknown
-```
 
----
+The important point is that ArcFace is now confirmed to be executing on the GPU.
 
-# 16. Final Architecture
+The ONNX Runtime session reports:
+
+Session providers:
+['CUDAExecutionProvider', 'CPUExecutionProvider']
+
+The presence of CUDAExecutionProvider as the active first provider confirms that the ArcFace ONNX session is configured to execute using CUDA on the NVIDIA GPU.
+
+# 15. Final Architecture
 
 The complete project can be summarized as:
 
-```text
                          ┌───────────────┐
                          │    Webcam     │
                          └───────┬───────┘
@@ -860,6 +612,7 @@ The complete project can be summarized as:
                          ┌───────────────┐
                          │     YOLO      │
                          │ Face Detection│
+                         │   CUDA/GPU    │
                          └───────┬───────┘
                                  │
                            Bounding Box
@@ -883,39 +636,28 @@ The complete project can be summarized as:
                        ┌──────────────┐
                        │   ArcFace    │
                        │ w600k_r50    │
+                       │   CUDA/GPU   │
                        └──────┬───────┘
                               │
-                       ONNX Runtime
-                              │
-                    CUDAExecutionProvider
-                              │
-                              ▼
-                     NVIDIA GTX 1650
-                              │
-                              ▼
                          512-D Vector
                               │
                               ▼
                  ┌─────────────────────────┐
                  │  Cosine Similarity      │
                  │                         │
-                 │          ↕              │
-                 │  face_database.pkl      │
+                 │       ↕                 │
+                 │ face_database.pkl       │
                  └───────────┬─────────────┘
                              │
                              ▼
                        Name / Unknown
-```
-
----
-
 # Summary
 
-The project separates **detection**, **landmark detection**, and **recognition**:
+The project separates detection from recognition:
 
-```text
 YOLO
 → Finds the face
+→ Runs on NVIDIA GPU using PyTorch/CUDA
 
 Face Landmark Model
 → Finds important facial keypoints
@@ -925,9 +667,7 @@ Face Alignment
 
 ArcFace
 → Converts the face into a 512-D embedding
-
-ONNX Runtime + CUDA
-→ Runs ArcFace inference on the NVIDIA GTX 1650 GPU
+→ Runs on NVIDIA GPU using ONNX Runtime/CUDAExecutionProvider
 
 Cosine Similarity
 → Compares the embedding with known embeddings
@@ -937,37 +677,18 @@ Threshold
 
 face_database.pkl
 → Stores known embeddings and their names
-```
+Current GPU status
+GPU:
+NVIDIA GeForce GTX 1650
 
-The complete system combines three main neural-network stages:
+YOLO:
+CUDA / GPU
 
-```text
-YOLO
-Detection
-   ↓
-2d106det
-Landmark Detection
-   ↓
-ArcFace
-Face Recognition
-```
+ArcFace:
+CUDA / GPU
 
-with GPU acceleration:
+ONNX Runtime:
+1.23.2
 
-```text
-YOLO
- ↓
-PyTorch + CUDA
- ↓
-NVIDIA GTX 1650
-
-ArcFace
- ↓
-ONNX Runtime
- ↓
+ArcFace provider:
 CUDAExecutionProvider
- ↓
-NVIDIA GTX 1650
-```
-
-This creates a complete **GPU-accelerated real-time face detection and recognition pipeline**.
