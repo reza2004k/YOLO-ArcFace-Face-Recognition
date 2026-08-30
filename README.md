@@ -68,7 +68,7 @@ Save to Database
 
 ---
 
-## 2. Face Detection with YOLO
+# 2. Face Detection with YOLO
 
 The project uses **YOLO (You Only Look Once)** for face detection.
 
@@ -418,7 +418,7 @@ is the best match.
 
 ---
 
-## 11. Dot Product and Cosine Similarity
+# 11. Dot Product and Cosine Similarity
 
 The dot product of two vectors is related to the angle between them:
 
@@ -651,7 +651,7 @@ The complete project can be summarized as:
                              │
                              ▼
                        Name / Unknown
-# Summary
+## Summary
 
 The project separates detection from recognition:
 
