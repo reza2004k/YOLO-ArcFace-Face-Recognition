@@ -176,7 +176,7 @@ Alignment
 
 ---
 
-5. ArcFace
+# 5. ArcFace
 
 After face alignment, the aligned face is passed to ArcFace.
 
@@ -311,7 +311,7 @@ Name / Unknown
 
 ---
 
-8. YOLO and ArcFace on the GPU
+# 8. YOLO and ArcFace on the GPU
 
 The system uses the NVIDIA GPU for both major neural-network components.
 
