@@ -476,30 +476,7 @@ is the best match.
 
 # 12. Dot Product and Cosine Similarity
 
-The project uses **cosine similarity** to compare face embeddings.
-
-Cosine similarity measures the angle between two vectors.
-
-The general formula is:
-
-$$
-\text{cosine similarity}
-=
-\frac{\mathbf{a}\cdot\mathbf{b}}
-{\|\mathbf{a}\|\|\mathbf{b}\|}
-$$
-
-Where:
-
-```text
-a · b   = Dot Product of vectors a and b
-||a||   = Magnitude (L2 norm) of vector a
-||b||   = Magnitude (L2 norm) of vector b
-```
-
----
-
-## Example
+The dot product of two vectors is related to the angle between them.
 
 Consider two vectors:
 
@@ -507,13 +484,13 @@ $$
 \mathbf{a} = [1,1]
 $$
 
+and
+
 $$
 \mathbf{b} = [2,2]
 $$
 
-### Step 1: Calculate the Dot Product
-
-The dot product is:
+## Step 1: Calculate the dot product
 
 $$
 \mathbf{a}\cdot\mathbf{b}
@@ -535,22 +512,20 @@ $$
 \mathbf{a}\cdot\mathbf{b}=4
 $$
 
----
+## Step 2: Calculate the magnitudes
 
-## Step 2: Calculate the Magnitude of Vector a
-
-The magnitude is:
+The magnitude of vector $\mathbf{a}$ is:
 
 $$
-\|\mathbf{a}\|
+|\mathbf{a}|
 =
 \sqrt{a_1^2+a_2^2}
 $$
 
-Substituting:
+Substituting the values:
 
 $$
-\|\mathbf{a}\|
+|\mathbf{a}|
 =
 \sqrt{1^2+1^2}
 $$
@@ -558,25 +533,21 @@ $$
 Therefore:
 
 $$
-\|\mathbf{a}\|=\sqrt{2}
+|\mathbf{a}|=\sqrt{2}
 $$
 
----
-
-## Step 3: Calculate the Magnitude of Vector b
-
-Similarly:
+The magnitude of vector $\mathbf{b}$ is:
 
 $$
-\|\mathbf{b}\|
+|\mathbf{b}|
 =
 \sqrt{b_1^2+b_2^2}
 $$
 
-Substituting:
+Substituting the values:
 
 $$
-\|\mathbf{b}\|
+|\mathbf{b}|
 =
 \sqrt{2^2+2^2}
 $$
@@ -584,29 +555,21 @@ $$
 Therefore:
 
 $$
-\|\mathbf{b}\|
-=
-\sqrt{4+4}
-=
-\sqrt{8}
-=
-2\sqrt{2}
+|\mathbf{b}|=\sqrt{8}=2\sqrt{2}
 $$
 
----
+## Step 3: Calculate cosine similarity
 
-## Step 4: Calculate Cosine Similarity
-
-The formula is:
+Cosine similarity is defined as:
 
 $$
 \cos(\theta)
 =
 \frac{\mathbf{a}\cdot\mathbf{b}}
-{\|\mathbf{a}\|\|\mathbf{b}\|}
+{|\mathbf{a}||\mathbf{b}|}
 $$
 
-Substituting the calculated values:
+Substituting the values:
 
 $$
 \cos(\theta)
@@ -615,132 +578,105 @@ $$
 {\sqrt{2}\times2\sqrt{2}}
 $$
 
-Since:
-
-$$
-\sqrt{2}\times2\sqrt{2}=4
-$$
-
-we get:
+Therefore:
 
 $$
 \cos(\theta)
 =
 \frac{4}{4}
+=
+1
 $$
 
-Therefore:
+So:
 
 $$
 \boxed{\cos(\theta)=1}
 $$
 
-This means the two vectors point in exactly the same direction.
+This means that the two vectors point in exactly the same direction.
 
 ---
 
-## Why Can We Use Dot Product Directly?
+## Cosine Similarity in Face Recognition
 
-In this project, face embeddings are **L2-normalized** before comparison.
-
-Normalization is performed using:
+In this project, ArcFace converts each detected face into a 512-dimensional embedding:
 
 $$
-\mathbf{a}_{normalized}
+\mathbf{e}
 =
-\frac{\mathbf{a}}{\|\mathbf{a}\|}
+[e_1,e_2,\ldots,e_{512}]
 $$
 
-After normalization:
+Before comparison, the embeddings are normalized:
 
 $$
-\|\mathbf{a}_{normalized}\|=1
+\hat{\mathbf{e}}
+=
+\frac{\mathbf{e}}
+{|\mathbf{e}|}
 $$
 
-The same applies to the second embedding:
+For two normalized face embeddings $\hat{\mathbf{e}}_1$ and $\hat{\mathbf{e}}_2$, cosine similarity can be calculated directly using the dot product:
 
 $$
-\|\mathbf{b}_{normalized}\|=1
+\text{Similarity}
+=
+\hat{\mathbf{e}}_1
+\cdot
+\hat{\mathbf{e}}_2
 $$
 
-Therefore, the cosine similarity formula becomes:
+because:
+
+$$
+|\hat{\mathbf{e}}_1|=1
+$$
+
+and
+
+$$
+|\hat{\mathbf{e}}_2|=1
+$$
+
+The general cosine similarity formula is:
 
 $$
 \cos(\theta)
 =
-\frac{\mathbf{a}\cdot\mathbf{b}}
-{1\times1}
+\frac{
+\hat{\mathbf{e}}_1
+\cdot
+\hat{\mathbf{e}}_2
+}{
+|\hat{\mathbf{e}}_1|
+|\hat{\mathbf{e}}_2|
+}
 $$
 
-which simplifies to:
+Since both embeddings are normalized:
 
 $$
-\boxed{\cos(\theta)=\mathbf{a}\cdot\mathbf{b}}
+|\hat{\mathbf{e}}_1|=|\hat{\mathbf{e}}_2|=1
 $$
 
-Therefore, the project can calculate cosine similarity directly using:
+the formula becomes:
+
+$$
+\cos(\theta)
+=
+\hat{\mathbf{e}}_1
+\cdot
+\hat{\mathbf{e}}_2
+$$
+
+In the Python implementation:
 
 ```python
 similarity = np.dot(
     embedding1,
     embedding2
 )
-```
-
-For comparing one webcam embedding against the complete database:
-
-```python
-similarities = np.dot(
-    known_embeddings,
-    embedding
-)
-```
-
-The process is therefore:
-
-```text
-Normalized Embeddings
-        ↓
-     Dot Product
-        ↓
-Cosine Similarity
-        ↓
-Similarity Score
-```
-
----
-
-## Interpretation of Similarity
-
-Cosine similarity is bounded by:
-
-$$
--1 \leq \cos(\theta) \leq 1
-$$
-
-In general:
-
-```text
-Similarity ≈ 1
-        ↓
-Very similar vector directions
-```
-
-```text
-Similarity ≈ 0
-        ↓
-Little directional similarity
-```
-
-```text
-Similarity ≈ -1
-        ↓
-Opposite vector directions
-```
-
-For face recognition, a higher similarity generally indicates that two face embeddings are closer in the learned feature space.
-
----
 
 # 13. Recognition Threshold
 
